@@ -1,0 +1,14 @@
+{
+  "ID": "1780024149_init",
+  "Name": "init",
+  "CreatedAt": "2026-05-29T12:09:09.742257+09:00",
+  "AppliedAt": null,
+  "Changes": null,
+  "SQL": [
+    "CREATE TABLE \"User\" (\"id\" TEXT NOT NULL DEFAULT uuid(), \"email\" TEXT NOT NULL, \"password\" TEXT NOT NULL, \"name\" TEXT NOT NULL, \"avatarUrl\" TEXT NOT NULL, \"role\" TEXT NOT NULL DEFAULT user, \"provider\" TEXT NOT NULL DEFAULT local, \"providerId\" TEXT NOT NULL, \"createdAt\" TIMESTAMP NOT NULL DEFAULT now(), \"updatedAt\" TIMESTAMP NOT NULL)",
+    "CREATE TABLE \"RefreshToken\" (\"id\" TEXT NOT NULL DEFAULT uuid(), \"userId\" TEXT NOT NULL, \"token\" TEXT NOT NULL, \"expiresAt\" TIMESTAMP NOT NULL, \"createdAt\" TIMESTAMP NOT NULL DEFAULT now())"
+  ],
+  "RollbackSQL": null,
+  "Checksum": "5d081ab738d3579c1a8dce07bb1e1f8a",
+  "Status": "Failed"
+}

@@ -1,0 +1,48 @@
+### Register user baru
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "name": "Test User"
+}
+
+### Login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+### Refresh token (ganti refresh_token dengan hasil login)
+POST http://localhost:8080/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "REFRESH_TOKEN"
+}
+
+### Logout (ganti refresh_token)
+POST http://localhost:8080/api/auth/logout
+Content-Type: application/json
+
+{
+  "refresh_token": "REFRESH_TOKEN"
+}
+
+### Profile (ganti access_token)
+GET http://localhost:8080/api/auth/me
+Authorization: Bearer ACCESS_TOKEN
+
+### Google login
+GET http://localhost:8080/api/auth/google/login
+
+### GitHub login
+GET http://localhost:8080/api/auth/github/login
+
+### Admin dashboard (ganti access_token admin)
+GET http://localhost:8080/api/admin/dashboard
+Authorization: Bearer ACCESS_TOKEN
