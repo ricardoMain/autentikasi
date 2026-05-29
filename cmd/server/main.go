@@ -1,7 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"autentikasi/internal/config"
@@ -25,14 +31,36 @@ func main() {
 	oauthSvc := services.NewOAuthService(cfg, userRepo, authSvc)
 
 	authHandler := handlers.NewAuthHandler(authSvc)
-	oauthHandler := handlers.NewOAuthHandler(oauthSvc)
+	oauthHandler := handlers.NewOAuthHandler(oauthSvc, cfg.SecureCookie)
 
 	r := gin.Default()
 
 	routes.Setup(r, authHandler, oauthHandler, tokenSvc)
 
-	log.Printf("server starting on port %s", cfg.ServerPort)
-	if err := r.Run(":" + cfg.ServerPort); err != nil {
-		log.Fatalf("server error: %v", err)
+	srv := &http.Server{
+		Addr:    ":" + cfg.ServerPort,
+		Handler: r,
 	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		log.Printf("server starting on port %s", cfg.ServerPort)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+
+	<-quit
+	log.Println("shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("server forced to shutdown: %v", err)
+	}
+
+	log.Println("server exited")
 }

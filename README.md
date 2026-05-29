@@ -7,9 +7,13 @@ Backend REST API autentikasi multi-provider (email, Google, GitHub) menggunakan 
 - Register & login dengan email/password
 - Login dengan Google OAuth
 - Login dengan GitHub OAuth
-- JWT access token + refresh token
+- JWT access token + refresh token (rotasi & revoke)
 - Role-based access (user / admin)
 - Middleware autentikasi & RBAC
+- Rate limiting pada endpoint login/register
+- Graceful shutdown
+- Repository & Service interfaces (testable)
+- Input validation dengan Gin validator
 
 ## Tech Stack
 
@@ -73,8 +77,9 @@ Atau buka `api-test.http` di VS Code (extension REST Client).
 | Variable | Default | Deskripsi |
 |----------|---------|-----------|
 | `SERVER_PORT` | `8080` | Port server |
-| `DATABASE_URL` | - | Koneksi PostgreSQL |
-| `JWT_SECRET` | - | Secret key JWT |
+| `DATABASE_URL` | **wajib** | Koneksi PostgreSQL |
+| `JWT_SECRET` | **wajib** | Secret key JWT (server akan panic jika kosong) |
+| `APP_ENV` | `development` | Set ke `production` untuk secure cookie |
 | `GOOGLE_CLIENT_ID` | - | Google OAuth Client ID |
 | `GOOGLE_CLIENT_SECRET` | - | Google OAuth Client Secret |
 | `GITHUB_CLIENT_ID` | - | GitHub OAuth Client ID |
