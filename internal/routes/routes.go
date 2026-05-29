@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"autentikasi/internal/handlers"
 	"autentikasi/internal/middleware"
@@ -13,12 +15,14 @@ func Setup(
 	oauthHandler *handlers.OAuthHandler,
 	tokenSvc *services.TokenService,
 ) {
+	rl := middleware.RateLimit(10, time.Minute)
+
 	api := r.Group("/api")
 	{
 		auth := api.Group("/auth")
 		{
-			auth.POST("/register", authHandler.Register)
-			auth.POST("/login", authHandler.Login)
+			auth.POST("/register", rl, authHandler.Register)
+			auth.POST("/login", rl, authHandler.Login)
 			auth.POST("/refresh", authHandler.Refresh)
 			auth.POST("/logout", authHandler.Logout)
 

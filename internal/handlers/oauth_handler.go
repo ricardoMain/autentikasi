@@ -9,16 +9,38 @@ import (
 )
 
 type OAuthHandler struct {
-	oauthSvc *services.OAuthService
+	oauthSvc     *services.OAuthService
+	secureCookie bool
 }
 
-func NewOAuthHandler(oauthSvc *services.OAuthService) *OAuthHandler {
-	return &OAuthHandler{oauthSvc: oauthSvc}
+func NewOAuthHandler(oauthSvc *services.OAuthService, secureCookie bool) *OAuthHandler {
+	return &OAuthHandler{oauthSvc: oauthSvc, secureCookie: secureCookie}
+}
+
+func (h *OAuthHandler) setStateCookie(c *gin.Context, state string) {
+	maxAge := 600
+	path := "/"
+	domain := ""
+	c.SetCookie("oauth_state", state, maxAge, path, domain, h.secureCookie, true)
+}
+
+func (h *OAuthHandler) clearStateCookie(c *gin.Context) {
+	maxAge := -1
+	path := "/"
+	domain := ""
+	c.SetCookie("oauth_state", "", maxAge, path, domain, h.secureCookie, true)
 }
 
 func (h *OAuthHandler) GoogleLogin(c *gin.Context) {
-	state := services.GenerateState()
-	c.SetCookie("oauth_state", state, 600, "/", "", false, true)
+	state, err := services.GenerateState()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{
+			Success: false,
+			Error:   "failed to generate state",
+		})
+		return
+	}
+	h.setStateCookie(c, state)
 	url := h.oauthSvc.GetGoogleLoginURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
@@ -36,7 +58,7 @@ func (h *OAuthHandler) GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("oauth_state", "", -1, "/", "", false, true)
+	h.clearStateCookie(c)
 
 	resp, err := h.oauthSvc.HandleGoogleCallback(c.Request.Context(), code)
 	if err != nil {
@@ -55,8 +77,15 @@ func (h *OAuthHandler) GoogleCallback(c *gin.Context) {
 }
 
 func (h *OAuthHandler) GitHubLogin(c *gin.Context) {
-	state := services.GenerateState()
-	c.SetCookie("oauth_state", state, 600, "/", "", false, true)
+	state, err := services.GenerateState()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{
+			Success: false,
+			Error:   "failed to generate state",
+		})
+		return
+	}
+	h.setStateCookie(c, state)
 	url := h.oauthSvc.GetGitHubLoginURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
@@ -74,7 +103,7 @@ func (h *OAuthHandler) GitHubCallback(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("oauth_state", "", -1, "/", "", false, true)
+	h.clearStateCookie(c)
 
 	resp, err := h.oauthSvc.HandleGitHubCallback(c.Request.Context(), code)
 	if err != nil {

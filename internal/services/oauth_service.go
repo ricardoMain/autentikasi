@@ -21,11 +21,11 @@ import (
 type OAuthService struct {
 	googleOAuthConfig *oauth2.Config
 	githubOAuthConfig *oauth2.Config
-	userRepo          *repository.UserRepository
+	userRepo          repository.UserRepositoryInterface
 	authSvc           *AuthService
 }
 
-func NewOAuthService(cfg *config.Config, userRepo *repository.UserRepository, authSvc *AuthService) *OAuthService {
+func NewOAuthService(cfg *config.Config, userRepo repository.UserRepositoryInterface, authSvc *AuthService) *OAuthService {
 	return &OAuthService{
 		googleOAuthConfig: &oauth2.Config{
 			ClientID:     cfg.GoogleClientID,
@@ -194,8 +194,11 @@ func (s *OAuthService) findOrCreateUser(ctx context.Context, provider, providerI
 	return s.authSvc.generateTokens(ctx, user)
 }
 
-func GenerateState() string {
+func GenerateState() (string, error) {
 	b := make([]byte, 16)
-	rand.Read(b)
-	return hex.EncodeToString(b)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate state: %w", err)
+	}
+	return hex.EncodeToString(b), nil
 }

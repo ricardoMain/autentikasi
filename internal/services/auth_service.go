@@ -21,15 +21,15 @@ var (
 )
 
 type AuthService struct {
-	userRepo  *repository.UserRepository
-	tokenRepo *repository.TokenRepository
+	userRepo  repository.UserRepositoryInterface
+	tokenRepo repository.TokenRepositoryInterface
 	tokenSvc  *TokenService
 	cfg       *config.Config
 }
 
 func NewAuthService(
-	userRepo *repository.UserRepository,
-	tokenRepo *repository.TokenRepository,
+	userRepo repository.UserRepositoryInterface,
+	tokenRepo repository.TokenRepositoryInterface,
 	tokenSvc *TokenService,
 	cfg *config.Config,
 ) *AuthService {
@@ -102,7 +102,9 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*models
 		return nil, ErrUserNotFound
 	}
 
-	s.tokenRepo.DeleteByToken(ctx, refreshToken)
+	if err := s.tokenRepo.DeleteByToken(ctx, refreshToken); err != nil {
+		return nil, err
+	}
 
 	return s.generateTokens(ctx, user)
 }
