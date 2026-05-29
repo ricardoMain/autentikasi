@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,11 +21,11 @@ import (
 func main() {
 	cfg := config.Load()
 
-	prisma := database.Connect(cfg.DatabaseURL)
-	defer prisma.Close()
+	db := database.Connect(cfg.DatabaseURL)
+	defer db.Client.Close()
 
-	userRepo := repository.NewUserRepository(prisma)
-	tokenRepo := repository.NewTokenRepository(prisma)
+	userRepo := repository.NewUserRepository(db.Client)
+	tokenRepo := repository.NewTokenRepository(db.Client)
 	tokenSvc := services.NewTokenService(cfg)
 	authSvc := services.NewAuthService(userRepo, tokenRepo, tokenSvc, cfg)
 	oauthSvc := services.NewOAuthService(cfg, userRepo, authSvc)
@@ -45,22 +45,31 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go database.CleanupExpiredTokens(ctx, db.SQL)
+
 	go func() {
-		log.Printf("server starting on port %s", cfg.ServerPort)
+		slog.Info("server starting", "port", cfg.ServerPort)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
-	<-quit
-	log.Println("shutting down server...")
+	sig := <-quit
+	slog.Info("shutting down server...", "signal", sig)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("server forced to shutdown: %v", err)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("server forced to shutdown", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("server exited")
+	slog.Info("server exited")
 }
