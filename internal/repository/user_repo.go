@@ -30,6 +30,10 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 		SetRole(user.Role).
 		SetProvider(user.Provider).
 		SetProviderId(strPtr(user.ProviderID)).
+		SetEmailVerified(user.EmailVerified).
+		SetTotpSecret(strPtr(user.TOTPSecret)).
+		SetTotpEnabled(user.TOTPEnabled).
+		SetOrganizationId(user.OrganizationID.String()).
 		SetCreatedAt(now).
 		SetUpdatedAt(now).
 		Exec()
@@ -65,28 +69,44 @@ func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.Us
 	return r.findBy(ctx, map[string]interface{}{"id": id.String()})
 }
 
+// Update persists user's mutable fields. Uses the Where().Update(data) form
+// directly because UserQuery.UpdateOne() drops the Where() filter, which
+// makes the compiler reject the query for missing a WHERE clause.
 func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
-	_, err := r.prisma.WithContext(ctx).User().Where(map[string]interface{}{
+	updated, err := r.prisma.WithContext(ctx).User().Where(map[string]interface{}{
 		"id": user.ID.String(),
-	}).UpdateOne().
-		SetName(strPtr(user.Name)).
-		SetAvatarUrl(strPtr(user.AvatarURL)).
-		Exec()
-	return err
+	}).Update(map[string]interface{}{
+		"name":          strPtr(user.Name),
+		"avatarUrl":     strPtr(user.AvatarURL),
+		"password":      strPtr(user.Password),
+		"emailVerified": user.EmailVerified,
+		"totpSecret":    strPtr(user.TOTPSecret),
+		"totpEnabled":   user.TOTPEnabled,
+		"updatedAt":     time.Now(),
+	})
+	if err != nil {
+		return err
+	}
+	user.UpdatedAt = updated.UpdatedAt
+	return nil
 }
 
 func toModelUser(u *generated.User) *models.User {
 	return &models.User{
-		ID:         uuid.MustParse(u.Id),
-		Email:      u.Email,
-		Password:   strVal(u.Password),
-		Name:       strVal(u.Name),
-		AvatarURL:  strVal(u.AvatarUrl),
-		Role:       u.Role,
-		Provider:   u.Provider,
-		ProviderID: strVal(u.ProviderId),
-		CreatedAt:  u.CreatedAt,
-		UpdatedAt:  u.UpdatedAt,
+		ID:             uuid.MustParse(u.Id),
+		Email:          u.Email,
+		Password:       strVal(u.Password),
+		Name:           strVal(u.Name),
+		AvatarURL:      strVal(u.AvatarUrl),
+		Role:           u.Role,
+		Provider:       u.Provider,
+		ProviderID:     strVal(u.ProviderId),
+		EmailVerified:  u.EmailVerified,
+		TOTPSecret:     strVal(u.TotpSecret),
+		TOTPEnabled:    u.TotpEnabled,
+		OrganizationID: uuid.MustParse(u.OrganizationId),
+		CreatedAt:      u.CreatedAt,
+		UpdatedAt:      u.UpdatedAt,
 	}
 }
 

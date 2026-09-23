@@ -119,6 +119,62 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	})
 }
 
+func (h *AuthHandler) VerifyEmail(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: "token is required"})
+		return
+	}
+
+	if err := h.authSvc.VerifyEmail(c.Request.Context(), token); err != nil {
+		status := 0
+		if errors.Is(err, services.ErrInvalidVerificationToken) || errors.Is(err, services.ErrUserNotFound) {
+			status = http.StatusBadRequest
+		}
+		respondError(c, status, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{Success: true, Message: "email verified"})
+}
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req models.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	if err := h.authSvc.ForgotPassword(c.Request.Context(), req.Email); err != nil {
+		respondError(c, 0, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{
+		Success: true,
+		Message: "if that email is registered, a reset link has been sent",
+	})
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req models.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	if err := h.authSvc.ResetPassword(c.Request.Context(), req.Token, req.NewPassword); err != nil {
+		status := 0
+		if errors.Is(err, services.ErrInvalidVerificationToken) || errors.Is(err, services.ErrUserNotFound) {
+			status = http.StatusBadRequest
+		}
+		respondError(c, status, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{Success: true, Message: "password reset successful"})
+}
+
 func (h *AuthHandler) Me(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	userIDStr, _ := userID.(string)

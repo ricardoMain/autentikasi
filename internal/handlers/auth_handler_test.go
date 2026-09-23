@@ -77,10 +77,47 @@ func (m *mockTokenRepo) DeleteByUserID(ctx context.Context, userID uuid.UUID) er
 	return args.Error(0)
 }
 
-func newTestAuthHandler(userRepo *mockUserRepo, tokenRepo *mockTokenRepo) *AuthHandler {
+type mockOrgRepo struct{ mock.Mock }
+
+func (m *mockOrgRepo) Create(ctx context.Context, org *models.Organization) error {
+	args := m.Called(ctx, org)
+	return args.Error(0)
+}
+func (m *mockOrgRepo) FindByID(ctx context.Context, id uuid.UUID) (*models.Organization, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Organization), args.Error(1)
+}
+
+type mockVerifyRepo struct{ mock.Mock }
+
+func (m *mockVerifyRepo) Create(ctx context.Context, userID uuid.UUID, token, purpose string, expiresAt time.Time) (*models.VerificationToken, error) {
+	args := m.Called(ctx, userID, token, purpose, expiresAt)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.VerificationToken), args.Error(1)
+}
+func (m *mockVerifyRepo) FindByToken(ctx context.Context, token string) (*models.VerificationToken, error) {
+	args := m.Called(ctx, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.VerificationToken), args.Error(1)
+}
+func (m *mockVerifyRepo) DeleteByToken(ctx context.Context, token string) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
+func newTestAuthHandler(userRepo *mockUserRepo, tokenRepo *mockTokenRepo, orgRepo *mockOrgRepo, verifyRepo *mockVerifyRepo) *AuthHandler {
 	cfg := &config.Config{JWTSecret: "test-secret", JWTExpiry: time.Minute, RefreshExpiry: time.Hour}
 	tokenSvc := services.NewTokenService(cfg)
-	authSvc := services.NewAuthService(userRepo, tokenRepo, tokenSvc, cfg)
+	emailSvc := services.NewEmailService(cfg)
+	totpSvc := services.NewTOTPService("test")
+	authSvc := services.NewAuthService(userRepo, tokenRepo, orgRepo, verifyRepo, tokenSvc, emailSvc, totpSvc, cfg)
 	return NewAuthHandler(authSvc)
 }
 
@@ -100,17 +137,23 @@ func TestRegister_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	userRepo := new(mockUserRepo)
 	tokenRepo := new(mockTokenRepo)
+	orgRepo := new(mockOrgRepo)
+	verifyRepo := new(mockVerifyRepo)
 	userRepo.On("FindByEmail", mock.Anything, "new@example.com").Return(nil, sql.ErrNoRows)
 	userRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.User")).Return(nil)
+	orgRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Organization")).
+		Run(func(args mock.Arguments) { args.Get(1).(*models.Organization).ID = uuid.New() }).Return(nil)
+	verifyRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(&models.VerificationToken{}, nil)
 	tokenRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(&models.RefreshToken{}, nil)
 
-	h := newTestAuthHandler(userRepo, tokenRepo)
+	h := newTestAuthHandler(userRepo, tokenRepo, orgRepo, verifyRepo)
 	r := gin.New()
 	r.POST("/register", h.Register)
 
 	w := doRequest(r, http.MethodPost, "/register", models.RegisterRequest{
-		Email: "new@example.com", Password: "password123", Name: "New User",
+		Email: "new@example.com", Password: "password123", Name: "New User", OrganizationName: "New Org",
 	})
 
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -120,15 +163,17 @@ func TestRegister_EmailExists(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	userRepo := new(mockUserRepo)
 	tokenRepo := new(mockTokenRepo)
+	orgRepo := new(mockOrgRepo)
+	verifyRepo := new(mockVerifyRepo)
 	userRepo.On("FindByEmail", mock.Anything, "taken@example.com").
 		Return(&models.User{Email: "taken@example.com"}, nil)
 
-	h := newTestAuthHandler(userRepo, tokenRepo)
+	h := newTestAuthHandler(userRepo, tokenRepo, orgRepo, verifyRepo)
 	r := gin.New()
 	r.POST("/register", h.Register)
 
 	w := doRequest(r, http.MethodPost, "/register", models.RegisterRequest{
-		Email: "taken@example.com", Password: "password123", Name: "Someone",
+		Email: "taken@example.com", Password: "password123", Name: "Someone", OrganizationName: "Org",
 	})
 
 	assert.Equal(t, http.StatusConflict, w.Code)
@@ -145,7 +190,7 @@ func TestLogin_Success(t *testing.T) {
 	tokenRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(&models.RefreshToken{}, nil)
 
-	h := newTestAuthHandler(userRepo, tokenRepo)
+	h := newTestAuthHandler(userRepo, tokenRepo, new(mockOrgRepo), new(mockVerifyRepo))
 	r := gin.New()
 	r.POST("/login", h.Login)
 
@@ -165,7 +210,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 		ID: uuid.New(), Email: "user@example.com", Password: string(hashed), Role: "user",
 	}, nil)
 
-	h := newTestAuthHandler(userRepo, tokenRepo)
+	h := newTestAuthHandler(userRepo, tokenRepo, new(mockOrgRepo), new(mockVerifyRepo))
 	r := gin.New()
 	r.POST("/login", h.Login)
 
@@ -182,7 +227,7 @@ func TestRefresh_InvalidToken(t *testing.T) {
 	tokenRepo := new(mockTokenRepo)
 	tokenRepo.On("FindByToken", mock.Anything, "bogus-token").Return(nil, sql.ErrNoRows)
 
-	h := newTestAuthHandler(userRepo, tokenRepo)
+	h := newTestAuthHandler(userRepo, tokenRepo, new(mockOrgRepo), new(mockVerifyRepo))
 	r := gin.New()
 	r.POST("/refresh", h.Refresh)
 

@@ -30,16 +30,22 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db.Client)
 	tokenRepo := repository.NewTokenRepository(db.Client)
+	orgRepo := repository.NewOrganizationRepository(db.Client)
+	verifyRepo := repository.NewVerificationTokenRepository(db.Client)
 	tokenSvc := services.NewTokenService(cfg)
-	authSvc := services.NewAuthService(userRepo, tokenRepo, tokenSvc, cfg)
+	emailSvc := services.NewEmailService(cfg)
+	totpSvc := services.NewTOTPService("Autentikasi")
+	authSvc := services.NewAuthService(userRepo, tokenRepo, orgRepo, verifyRepo, tokenSvc, emailSvc, totpSvc, cfg)
 	oauthSvc := services.NewOAuthService(cfg, userRepo, authSvc)
 
 	authHandler := handlers.NewAuthHandler(authSvc)
 	oauthHandler := handlers.NewOAuthHandler(oauthSvc, cfg.SecureCookie)
+	twoFAHandler := handlers.NewTwoFAHandler(authSvc)
+	orgHandler := handlers.NewOrganizationHandler(orgRepo)
 
 	r := gin.Default()
 
-	routes.Setup(r, authHandler, oauthHandler, tokenSvc, cfg.FrontendURL)
+	routes.Setup(r, authHandler, oauthHandler, twoFAHandler, orgHandler, tokenSvc, cfg.FrontendURL)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.ServerPort,

@@ -4,7 +4,7 @@ BASE="http://localhost:8080/api/auth"
 echo "=== Register (skip kalo udah ada) ==="
 curl -s -X POST "$BASE/register" \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"password123","name":"Test User"}' | jq .
+  -d '{"email":"test@example.com","password":"password123","name":"Test User","organization_name":"Test Org"}' | jq .
 
 echo -e "\n=== Login ==="
 LOGIN=$(curl -s -X POST "$BASE/login" \

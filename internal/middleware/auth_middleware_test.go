@@ -47,7 +47,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 
 func TestAuthMiddleware_ValidToken(t *testing.T) {
 	tokenSvc := newTestTokenService()
-	token, err := tokenSvc.GenerateAccessToken(uuid.New(), "user@example.com", "user")
+	token, err := tokenSvc.GenerateAccessToken(uuid.New(), "user@example.com", "user", uuid.New())
 	assert.NoError(t, err)
 
 	gin.SetMode(gin.TestMode)

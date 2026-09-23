@@ -26,6 +26,12 @@ type Config struct {
 	FrontendURL  string
 	SecureCookie bool
 	AppEnv       string
+
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
 }
 
 func Load() *Config {
@@ -61,6 +67,12 @@ func Load() *Config {
 		FrontendURL:  getEnv("FRONTEND_URL", "http://localhost:3000"),
 		SecureCookie: os.Getenv("APP_ENV") == "production",
 		AppEnv:       getEnv("APP_ENV", "development"),
+
+		SMTPHost:     getEnv("SMTP_HOST", ""),
+		SMTPPort:     getEnv("SMTP_PORT", "587"),
+		SMTPUser:     getEnv("SMTP_USER", ""),
+		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:     getEnv("SMTP_FROM", "no-reply@localhost"),
 	}
 }
 

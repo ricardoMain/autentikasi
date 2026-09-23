@@ -7,14 +7,18 @@ import (
 )
 
 type User struct {
-	ID         uuid.UUID `json:"id"`
-	Email      string    `json:"email"`
-	Password   string    `json:"-"`
-	Name       string    `json:"name"`
-	AvatarURL  string    `json:"avatar_url"`
-	Role       string    `json:"role"`
-	Provider   string    `json:"provider"`
-	ProviderID string    `json:"provider_id"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID             uuid.UUID `json:"id"`
+	Email          string    `json:"email"`
+	Password       string    `json:"-"`
+	Name           string    `json:"name"`
+	AvatarURL      string    `json:"avatar_url"`
+	Role           string    `json:"role"`
+	Provider       string    `json:"provider"`
+	ProviderID     string    `json:"provider_id"`
+	EmailVerified  bool      `json:"email_verified"`
+	TOTPSecret     string    `json:"-"`
+	TOTPEnabled    bool      `json:"totp_enabled"`
+	OrganizationID uuid.UUID `json:"organization_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }

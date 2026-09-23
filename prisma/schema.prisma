@@ -8,25 +8,52 @@ generator client {
   output   = "./generated"
 }
 
-model User {
-  id         String   @id @default(uuid())
-  email      String   @unique
-  password   String?
-  name       String?
-  avatarUrl  String?
-  role       String   @default("user")
-  provider   String   @default("local")
-  providerId String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  users User[]
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  password       String?
+  name           String?
+  avatarUrl      String?
+  role           String   @default("user")
+  provider       String   @default("local")
+  providerId     String?
+  emailVerified  Boolean  @default(false)
+  totpSecret     String?
+  totpEnabled    Boolean  @default(false)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization  Organization        @relation(fields: [organizationId], references: [id])
   refreshTokens RefreshToken[]
+  verificationTokens VerificationToken[]
 }
 
 model RefreshToken {
   id        String   @id @default(uuid())
   userId    String
   token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  purpose   String
   expiresAt DateTime
   createdAt DateTime @default(now())
 

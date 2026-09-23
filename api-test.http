@@ -1,11 +1,12 @@
-### Register user baru
+### Register user baru (+ organisasi baru)
 POST http://localhost:8080/api/auth/register
 Content-Type: application/json
 
 {
   "email": "test@example.com",
   "password": "password123",
-  "name": "Test User"
+  "name": "Test User",
+  "organization_name": "Test Org"
 }
 
 ### Login
@@ -35,6 +36,61 @@ Content-Type: application/json
 
 ### Profile (ganti access_token)
 GET http://localhost:8080/api/auth/me
+Authorization: Bearer ACCESS_TOKEN
+
+### Verify email (ganti token, cek log server kalau SMTP tidak dikonfigurasi)
+GET http://localhost:8080/api/auth/verify-email?token=VERIFY_TOKEN
+
+### Forgot password
+POST http://localhost:8080/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+### Reset password (ganti token, cek log server kalau SMTP tidak dikonfigurasi)
+POST http://localhost:8080/api/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "RESET_TOKEN",
+  "new_password": "newpassword123"
+}
+
+### Setup 2FA (ganti access_token)
+POST http://localhost:8080/api/auth/2fa/setup
+Authorization: Bearer ACCESS_TOKEN
+
+### Confirm 2FA (ganti access_token & code dari authenticator app)
+POST http://localhost:8080/api/auth/2fa/confirm
+Authorization: Bearer ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "code": "123456"
+}
+
+### Login step 2: selesaikan 2FA (ganti temp_token dari response login & code)
+POST http://localhost:8080/api/auth/2fa/login
+Content-Type: application/json
+
+{
+  "temp_token": "TEMP_TOKEN",
+  "code": "123456"
+}
+
+### Disable 2FA (ganti access_token & code)
+POST http://localhost:8080/api/auth/2fa/disable
+Authorization: Bearer ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "code": "123456"
+}
+
+### My organization (ganti access_token)
+GET http://localhost:8080/api/organizations/me
 Authorization: Bearer ACCESS_TOKEN
 
 ### Google login

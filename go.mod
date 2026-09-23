@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
+	github.com/pquerna/otp v1.5.0
 	github.com/satishbabariya/prisma-go v0.0.0-20251229060051-c4e85ae346f5
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.52.0
@@ -16,6 +17,7 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect

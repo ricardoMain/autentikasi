@@ -1,6 +1,5 @@
 .env
 .env.local
-prisma/generated/
 tmp/
 *.exe
 *.exe~

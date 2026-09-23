@@ -182,13 +182,20 @@ func (s *OAuthService) findOrCreateUser(ctx context.Context, provider, providerI
 		return nil, fmt.Errorf("%w: registered via %s", ErrEmailAlreadyExists, existing.Provider)
 	}
 
+	org, err := s.authSvc.createOrganization(ctx, name+"'s Organization")
+	if err != nil {
+		return nil, err
+	}
+
 	user = &models.User{
-		Email:      email,
-		Name:       name,
-		AvatarURL:  avatarURL,
-		Role:       "user",
-		Provider:   provider,
-		ProviderID: providerID,
+		Email:          email,
+		Name:           name,
+		AvatarURL:      avatarURL,
+		Role:           "user",
+		Provider:       provider,
+		ProviderID:     providerID,
+		EmailVerified:  true, // the OAuth provider already verified it
+		OrganizationID: org.ID,
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {

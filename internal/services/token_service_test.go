@@ -14,13 +14,39 @@ func TestValidateAccessToken_RoundTrip(t *testing.T) {
 	svc := NewTokenService(&config.Config{JWTSecret: "test-secret", JWTExpiry: time.Minute})
 	userID := uuid.New()
 
-	token, err := svc.GenerateAccessToken(userID, "user@example.com", "admin")
+	orgID := uuid.New()
+	token, err := svc.GenerateAccessToken(userID, "user@example.com", "admin", orgID)
 	assert.NoError(t, err)
 
 	claims, err := svc.ValidateAccessToken(token)
 	assert.NoError(t, err)
 	assert.Equal(t, userID, claims.UserID)
 	assert.Equal(t, "admin", claims.Role)
+	assert.Equal(t, orgID, claims.OrganizationID)
+}
+
+func TestTwoFAPendingToken_RoundTrip(t *testing.T) {
+	svc := NewTokenService(&config.Config{JWTSecret: "test-secret"})
+	userID := uuid.New()
+
+	token, err := svc.GenerateTwoFAPendingToken(userID)
+	assert.NoError(t, err)
+
+	gotID, err := svc.ValidateTwoFAPendingToken(token)
+	assert.NoError(t, err)
+	assert.Equal(t, userID, gotID)
+}
+
+func TestTwoFAPendingToken_RejectedByNormalValidation(t *testing.T) {
+	svc := NewTokenService(&config.Config{JWTSecret: "test-secret"})
+	token, err := svc.GenerateTwoFAPendingToken(uuid.New())
+	assert.NoError(t, err)
+
+	_, err = svc.ValidateAccessToken(token)
+	assert.NoError(t, err) // parses, but...
+
+	claims, _ := svc.ValidateAccessToken(token)
+	assert.Equal(t, uuid.Nil, claims.UserID) // ...carries no usable identity
 }
 
 // Regression test for alg-confusion: a token signed with "none" must never

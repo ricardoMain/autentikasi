@@ -22,3 +22,14 @@ type TokenRepositoryInterface interface {
 	DeleteByToken(ctx context.Context, token string) error
 	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
 }
+
+type VerificationTokenRepositoryInterface interface {
+	Create(ctx context.Context, userID uuid.UUID, token, purpose string, expiresAt time.Time) (*models.VerificationToken, error)
+	FindByToken(ctx context.Context, token string) (*models.VerificationToken, error)
+	DeleteByToken(ctx context.Context, token string) error
+}
+
+type OrganizationRepositoryInterface interface {
+	Create(ctx context.Context, org *models.Organization) error
+	FindByID(ctx context.Context, id uuid.UUID) (*models.Organization, error)
+}

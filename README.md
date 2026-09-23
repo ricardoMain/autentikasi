@@ -4,13 +4,17 @@ Backend REST API autentikasi multi-provider (email, Google, GitHub) menggunakan 
 
 ## Fitur
 
-- Register & login dengan email/password
+- Register & login dengan email/password (tiap register membuat organisasi baru)
 - Login dengan Google OAuth
 - Login dengan GitHub OAuth
+- Verifikasi email & reset password lewat SMTP
+- Two-factor authentication (TOTP)
+- Multi-tenant: satu user = satu organisasi, `organization_id` ikut di JWT
 - JWT access token + refresh token (rotasi & revoke)
 - Role-based access (user / admin)
 - Middleware autentikasi & RBAC
-- Rate limiting pada endpoint login/register
+- Rate limiting pada endpoint login/register/2FA/reset password
+- CORS
 - Graceful shutdown
 - Repository & Service interfaces (testable)
 - Input validation dengan Gin validator
@@ -61,15 +65,23 @@ Atau buka `api-test.http` di VS Code (extension REST Client).
 
 | Method | Endpoint | Auth | Deskripsi |
 |--------|----------|------|-----------|
-| POST | `/api/auth/register` | - | Registrasi user baru |
-| POST | `/api/auth/login` | - | Login email/password |
+| POST | `/api/auth/register` | - | Registrasi user + organisasi baru |
+| POST | `/api/auth/login` | - | Login email/password (balas `requires_2fa` kalau 2FA aktif) |
 | POST | `/api/auth/refresh` | - | Refresh access token |
 | POST | `/api/auth/logout` | - | Logout (hapus refresh token) |
+| GET | `/api/auth/verify-email?token=` | - | Verifikasi email |
+| POST | `/api/auth/forgot-password` | - | Minta link reset password |
+| POST | `/api/auth/reset-password` | - | Reset password pakai token |
 | GET | `/api/auth/me` | Bearer | Profile user |
 | GET | `/api/auth/google/login` | - | Redirect ke Google OAuth |
 | GET | `/api/auth/google/callback` | - | Callback Google OAuth |
 | GET | `/api/auth/github/login` | - | Redirect ke GitHub OAuth |
 | GET | `/api/auth/github/callback` | - | Callback GitHub OAuth |
+| POST | `/api/auth/2fa/setup` | Bearer | Generate secret TOTP baru |
+| POST | `/api/auth/2fa/confirm` | Bearer | Konfirmasi kode TOTP, aktifkan 2FA |
+| POST | `/api/auth/2fa/disable` | Bearer | Matikan 2FA |
+| POST | `/api/auth/2fa/login` | - | Selesaikan login yang tertahan 2FA |
+| GET | `/api/organizations/me` | Bearer | Organisasi milik user saat ini |
 | GET | `/api/admin/dashboard` | Bearer + Admin | Dashboard admin |
 
 ## Environment Variables
@@ -85,6 +97,10 @@ Atau buka `api-test.http` di VS Code (extension REST Client).
 | `GITHUB_CLIENT_ID` | - | GitHub OAuth Client ID |
 | `GITHUB_CLIENT_SECRET` | - | GitHub OAuth Client Secret |
 | `FRONTEND_URL` | `http://localhost:3000` | URL frontend |
+| `SMTP_HOST` | - | Kosongkan untuk log email verifikasi/reset ke console, isi untuk kirim sungguhan |
+| `SMTP_PORT` | `587` | Port SMTP |
+| `SMTP_USER` / `SMTP_PASSWORD` | - | Kredensial SMTP |
+| `SMTP_FROM` | `no-reply@localhost` | Alamat pengirim |
 
 ## Lisensi
 
