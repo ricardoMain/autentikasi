@@ -23,8 +23,9 @@ type Config struct {
 	GitHubClientSecret string
 	GitHubRedirectURL  string
 
-	FrontendURL string
+	FrontendURL  string
 	SecureCookie bool
+	AppEnv       string
 }
 
 func Load() *Config {
@@ -59,6 +60,7 @@ func Load() *Config {
 
 		FrontendURL:  getEnv("FRONTEND_URL", "http://localhost:3000"),
 		SecureCookie: os.Getenv("APP_ENV") == "production",
+		AppEnv:       getEnv("APP_ENV", "development"),
 	}
 }
 

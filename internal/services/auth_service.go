@@ -7,11 +7,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
 	"autentikasi/internal/config"
 	"autentikasi/internal/models"
 	"autentikasi/internal/repository"
 )
+
+// uniqueViolationCode is Postgres' error code for a unique constraint conflict.
+const uniqueViolationCode = "23505"
 
 var (
 	ErrEmailAlreadyExists = errors.New("email already registered")
@@ -61,6 +65,10 @@ func (s *AuthService) Register(ctx context.Context, req models.RegisterRequest) 
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == uniqueViolationCode {
+			return nil, ErrEmailAlreadyExists
+		}
 		return nil, err
 	}
 

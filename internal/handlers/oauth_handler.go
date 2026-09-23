@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -62,10 +63,11 @@ func (h *OAuthHandler) GoogleCallback(c *gin.Context) {
 
 	resp, err := h.oauthSvc.HandleGoogleCallback(c.Request.Context(), code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.APIResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		status := 0
+		if errors.Is(err, services.ErrEmailAlreadyExists) {
+			status = http.StatusConflict
+		}
+		respondError(c, status, err)
 		return
 	}
 
@@ -107,10 +109,11 @@ func (h *OAuthHandler) GitHubCallback(c *gin.Context) {
 
 	resp, err := h.oauthSvc.HandleGitHubCallback(c.Request.Context(), code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.APIResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		status := 0
+		if errors.Is(err, services.ErrEmailAlreadyExists) {
+			status = http.StatusConflict
+		}
+		respondError(c, status, err)
 		return
 	}
 

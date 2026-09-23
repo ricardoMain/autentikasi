@@ -178,6 +178,10 @@ func (s *OAuthService) findOrCreateUser(ctx context.Context, provider, providerI
 		return s.authSvc.generateTokens(ctx, user)
 	}
 
+	if existing, err := s.userRepo.FindByEmail(ctx, email); err == nil && existing != nil {
+		return nil, fmt.Errorf("%w: registered via %s", ErrEmailAlreadyExists, existing.Provider)
+	}
+
 	user = &models.User{
 		Email:      email,
 		Name:       name,

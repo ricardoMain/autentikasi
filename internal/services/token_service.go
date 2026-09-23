@@ -46,7 +46,7 @@ func (s *TokenService) GenerateRefreshToken() (string, error) {
 func (s *TokenService) ValidateAccessToken(tokenString string) (*TokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(t *jwt.Token) (interface{}, error) {
 		return []byte(s.cfg.JWTSecret), nil
-	})
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}))
 	if err != nil {
 		return nil, err
 	}

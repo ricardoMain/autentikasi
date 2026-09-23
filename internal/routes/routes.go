@@ -14,7 +14,10 @@ func Setup(
 	authHandler *handlers.AuthHandler,
 	oauthHandler *handlers.OAuthHandler,
 	tokenSvc *services.TokenService,
+	frontendURL string,
 ) {
+	r.Use(middleware.CORS(frontendURL))
+
 	rl := middleware.RateLimit(10, time.Minute)
 
 	api := r.Group("/api")
@@ -23,8 +26,8 @@ func Setup(
 		{
 			auth.POST("/register", rl, authHandler.Register)
 			auth.POST("/login", rl, authHandler.Login)
-			auth.POST("/refresh", authHandler.Refresh)
-			auth.POST("/logout", authHandler.Logout)
+			auth.POST("/refresh", rl, authHandler.Refresh)
+			auth.POST("/logout", rl, authHandler.Logout)
 
 			auth.GET("/google/login", oauthHandler.GoogleLogin)
 			auth.GET("/google/callback", oauthHandler.GoogleCallback)

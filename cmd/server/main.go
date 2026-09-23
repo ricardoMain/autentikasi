@@ -21,6 +21,10 @@ import (
 func main() {
 	cfg := config.Load()
 
+	if cfg.AppEnv == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	db := database.Connect(cfg.DatabaseURL)
 	defer db.Client.Close()
 
@@ -35,7 +39,7 @@ func main() {
 
 	r := gin.Default()
 
-	routes.Setup(r, authHandler, oauthHandler, tokenSvc)
+	routes.Setup(r, authHandler, oauthHandler, tokenSvc, cfg.FrontendURL)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.ServerPort,

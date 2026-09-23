@@ -29,14 +29,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	resp, err := h.authSvc.Register(c.Request.Context(), req)
 	if err != nil {
-		status := http.StatusInternalServerError
+		status := 0
 		if errors.Is(err, services.ErrEmailAlreadyExists) {
 			status = http.StatusConflict
 		}
-		c.JSON(status, models.APIResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		respondError(c, status, err)
 		return
 	}
 
@@ -59,14 +56,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	resp, err := h.authSvc.Login(c.Request.Context(), req)
 	if err != nil {
-		status := http.StatusInternalServerError
+		status := 0
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			status = http.StatusUnauthorized
 		}
-		c.JSON(status, models.APIResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		respondError(c, status, err)
 		return
 	}
 
@@ -89,14 +83,11 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	resp, err := h.authSvc.Refresh(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		status := http.StatusInternalServerError
+		status := 0
 		if errors.Is(err, services.ErrInvalidToken) {
 			status = http.StatusUnauthorized
 		}
-		c.JSON(status, models.APIResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		respondError(c, status, err)
 		return
 	}
 
@@ -118,10 +109,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	if err := h.authSvc.Logout(c.Request.Context(), req.RefreshToken); err != nil {
-		c.JSON(http.StatusInternalServerError, models.APIResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		respondError(c, 0, err)
 		return
 	}
 
@@ -137,14 +125,11 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	user, err := h.authSvc.GetProfile(c.Request.Context(), userIDStr)
 	if err != nil {
-		status := http.StatusInternalServerError
+		status := 0
 		if errors.Is(err, services.ErrUserNotFound) {
 			status = http.StatusNotFound
 		}
-		c.JSON(status, models.APIResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
+		respondError(c, status, err)
 		return
 	}
 
